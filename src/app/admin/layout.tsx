@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "../globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,7 +22,7 @@ export default function AdminLayout({
     <html lang="en" className={`${geistSans.variable}`}>
       <body className="bg-[#050505] text-[#f5f5f7] font-sans antialiased">
         <div className="grain-overlay" />
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

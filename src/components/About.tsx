@@ -1,25 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
 import AnimatedSection from "./AnimatedSection";
 
 interface AboutProps {
   content?: Record<string, unknown> | null;
+  photoUrl?: string | null;
 }
 
-export default function About({ content }: AboutProps) {
-  const [hasPhoto, setHasPhoto] = useState(false);
-
-  useEffect(() => {
-    // Check if photo exists
-    fetch("/images/about.jpg", { method: "HEAD" })
-      .then((res) => {
-        if (res.ok || res.status === 200) setHasPhoto(true);
-      })
-      .catch(() => {});
-  }, []);
-
+export default function About({ content, photoUrl }: AboutProps) {
   const heading1 = (content?.heading1 as string) ?? "Turning complex";
   const gradientHeading = (content?.gradientHeading as string) ?? "problems";
   const heading2 = (content?.heading2 as string) ?? "into elegant code";
@@ -90,13 +78,11 @@ export default function About({ content }: AboutProps) {
                 {/* Inner core */}
                 <div className="rounded-[calc(2rem-2px)] bg-[#0a0a0a] overflow-hidden">
                   <div className="relative w-full aspect-[4/5]">
-                    {hasPhoto ? (
-                      <Image
-                        src="/images/about.jpg"
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
                         alt="Profile photo"
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 320px, 380px"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <>
@@ -107,10 +93,10 @@ export default function About({ content }: AboutProps) {
                               <span className="text-3xl font-bold text-white">TS</span>
                             </div>
                             <p className="text-white/30 text-sm tracking-wide">
-                              Your photo here
+                              Upload photo via CMS
                             </p>
                             <p className="text-white/15 text-xs mt-1">
-                              Place at /images/about.jpg
+                              /admin/dashboard
                             </p>
                           </div>
                         </div>

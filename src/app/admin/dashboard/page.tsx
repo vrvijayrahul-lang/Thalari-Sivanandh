@@ -15,71 +15,144 @@ import {
   Clock,
   Mail,
   Share2,
-  GripVertical,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
 } from "lucide-react";
-
-type ContentData = Record<string, unknown>;
+import { useAuth } from "@/contexts/AuthContext";
+import { getContent, saveContent } from "@/lib/firestore";
+import { uploadImage, getImageUrl } from "@/lib/storage";
+import type { DocumentData } from "firebase/firestore";
 
 export default function AdminDashboard() {
-  const [content, setContent] = useState<ContentData | null>(null);
+  const { user, loading: authLoading, logout } = useAuth();
+  const router = useRouter();
+
+  const [content, setContent] = useState<DocumentData | null>(null);
   const [activeTab, setActiveTab] = useState("hero");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
-  const fetchContent = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("admin_token");
-      if (!token) {
-        router.push("/admin/login");
-        return;
-      }
-
-      const res = await fetch("/api/admin/content", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setContent(data.data);
-      }
-    } catch {
-      console.error("Failed to load content");
-    } finally {
-      setLoading(false);
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/admin/login");
     }
-  }, [router]);
+  }, [user, authLoading, router]);
+
+  // Fetch content from Firestore
+  const fetchContent = useCallback(async () => {
+    const data = await getContent();
+    if (data) {
+      setContent(data);
+    } else {
+      // Seed with default content from the JSON file
+      const defaultContent = {
+        hero: {
+          greeting: "Crafting",
+          gradientText: "Digital",
+          ending: "Experiences",
+          subtitle: "Full-stack developer with an obsessive eye for detail — building premium digital products that feel as good as they look.",
+          ctaPrimary: "View Projects",
+          ctaSecondary: "Get in Touch",
+        },
+        about: {
+          heading1: "Turning complex",
+          gradientHeading: "problems",
+          heading2: "into elegant code",
+          paragraph1: "I'm a full-stack developer and design engineer with a passion for building digital products that are both beautiful and functional.",
+          paragraph2: "My approach combines meticulous attention to detail with a deep understanding of modern web technologies.",
+          stats: [
+            { value: "5+", label: "Years Experience" },
+            { value: "50+", label: "Projects Delivered" },
+            { value: "30+", label: "Happy Clients" },
+          ],
+        },
+        skills: [
+          { title: "Frontend", items: ["React/Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"] },
+          { title: "Backend", items: ["Node.js", "Python", "GraphQL", "REST APIs"] },
+          { title: "Database", items: ["PostgreSQL", "MongoDB", "Redis", "Prisma"] },
+          { title: "DevOps", items: ["Docker", "AWS", "Vercel", "CI/CD"] },
+          { title: "Design", items: ["Figma", "UI/UX", "Prototyping", "Design Systems"] },
+          { title: "Languages", items: ["JavaScript", "TypeScript", "Python", "Rust"] },
+        ],
+        projects: [
+          { title: "Nova Dashboard", description: "A real-time analytics dashboard with AI-powered insights.", tags: ["Next.js", "Python", "WebSockets"], href: "#", github: "#", featured: true },
+          { title: "Flux Commerce", description: "Headless e-commerce platform with dynamic pricing.", tags: ["React", "Node.js", "GraphQL"], href: "#", github: "#", featured: true },
+          { title: "Pulse Health", description: "Telemedicine platform with secure video consultations.", tags: ["Next.js", "WebRTC", "MongoDB"], href: "#", github: "#", featured: false },
+          { title: "Synth AI Studio", description: "Creative AI toolkit for music and art generation.", tags: ["Python", "FastAPI", "TensorFlow"], href: "#", github: "#", featured: false },
+        ],
+        experience: [
+          { company: "TechCorp Inc.", role: "Senior Full-Stack Developer", period: "2023 — Present", description: "Architected scalable microservices.", highlights: ["10M+ daily requests", "60% faster deployments"] },
+          { company: "Digital Agency Co.", role: "Full-Stack Developer", period: "2021 — 2023", description: "Delivered 20+ client projects.", highlights: ["20+ projects", "40% faster delivery"] },
+          { company: "StartupXYZ", role: "Frontend Developer", period: "2019 — 2021", description: "Built product from the ground up.", highlights: ["Real-time collaboration", "Design system"] },
+        ],
+        contact: {
+          email: "hello@sivanandh.dev",
+          location: "Remote / Bangalore, India",
+          formIntro: "Have a project in mind? Drop me a message.",
+          successMessage: "I'll get back to you within 24 hours.",
+        },
+        social: { github: "#", linkedin: "#", twitter: "#" },
+        photoUrl: "",
+      };
+      setContent(defaultContent);
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    fetchContent();
-  }, [fetchContent]);
+    if (user) fetchContent();
+  }, [user, fetchContent]);
+
+  // Load existing photo URL
+  useEffect(() => {
+    if (content?.photoUrl) {
+      setPhotoUrl(content.photoUrl as string);
+    } else {
+      // Check Firebase Storage for existing photo
+      getImageUrl("portfolio/about.jpg").then((url) => {
+        if (url) setPhotoUrl(url);
+      });
+    }
+  }, [content]);
 
   const handleSave = async () => {
+    if (!content) return;
     setSaving(true);
-    try {
-      const token = localStorage.getItem("admin_token");
-      const res = await fetch("/api/admin/content", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(content),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      }
-    } catch {
-      console.error("Failed to save");
-    } finally {
-      setSaving(false);
+    const result = await saveContent(content);
+    if (result.success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     }
+    setSaving(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("admin_token");
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    setUploadProgress(0);
+
+    const url = await uploadImage(file, "portfolio/about.jpg", (progress) => {
+      setUploadProgress(Math.round(progress));
+    });
+
+    if (url) {
+      setPhotoUrl(url);
+      setContent((prev) => (prev ? { ...prev, photoUrl: url } : prev));
+    }
+
+    setUploadingPhoto(false);
+  };
+
+  const handleLogout = async () => {
+    await logout();
     router.push("/admin/login");
   };
 
@@ -109,8 +182,7 @@ export default function AdminDashboard() {
   const addArrayItem = (section: string, template: Record<string, unknown>) => {
     setContent((prev) => {
       if (!prev || !Array.isArray(prev[section])) return prev;
-      const arr = [...(prev[section] as Record<string, unknown>[]), template];
-      return { ...prev, [section]: arr };
+      return { ...prev, [section]: [...(prev[section] as Record<string, unknown>[]), template] };
     });
   };
 
@@ -143,11 +215,7 @@ export default function AdminDashboard() {
     });
   };
 
-  const addNestedArrayItem = (
-    section: string,
-    parentIndex: number,
-    field: string
-  ) => {
+  const addNestedArrayItem = (section: string, parentIndex: number, field: string) => {
     setContent((prev) => {
       if (!prev || !Array.isArray(prev[section])) return prev;
       const arr = [...(prev[section] as Record<string, unknown>[])];
@@ -188,15 +256,15 @@ export default function AdminDashboard() {
     { id: "social", label: "Social", icon: Share2 },
   ];
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
       </div>
     );
   }
 
-  if (!content) return null;
+  if (!user || !content) return null;
 
   const hero = content.hero as Record<string, string>;
   const about = content.about as Record<string, unknown>;
@@ -218,29 +286,26 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h1 className="text-sm font-medium text-white/80">CMS Dashboard</h1>
-              <p className="text-[11px] text-white/30">Portfolio Admin Panel</p>
+              <p className="text-[11px] text-white/30">{user.email}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Save status */}
             {saved && (
               <span className="text-[11px] text-emerald-400/80 animate-pulse">
                 Saved ✓
               </span>
             )}
 
-            {/* Save button */}
             <button
               onClick={handleSave}
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-[#050505] text-xs font-medium hover:bg-white/90 transition-all duration-300 active:scale-[0.98] disabled:opacity-50"
             >
-              <Save className="w-3.5 h-3.5" />
-              {saving ? "Saving..." : "Save Changes"}
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              {saving ? "Saving..." : "Save to Firestore"}
             </button>
 
-            {/* View site */}
             <a
               href="/"
               target="_blank"
@@ -250,7 +315,6 @@ export default function AdminDashboard() {
               <span className="hidden sm:inline">View Site</span>
             </a>
 
-            {/* Logout */}
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.04] transition-all duration-300"
@@ -310,7 +374,7 @@ export default function AdminDashboard() {
         {/* Hero Section */}
         {activeTab === "hero" && (
           <div className="space-y-6">
-            <SectionTitle title="Hero Section" desc="Edit your main hero banner content" />
+            <SectionTitle title="Hero Section" desc="Edit your main hero banner" />
             <Field label="Greeting Text" value={hero.greeting} onChange={(v) => updateField("hero", "greeting", v)} />
             <Field label="Gradient Text" value={hero.gradientText} onChange={(v) => updateField("hero", "gradientText", v)} />
             <Field label="Ending Text" value={hero.ending} onChange={(v) => updateField("hero", "ending", v)} />
@@ -323,7 +387,47 @@ export default function AdminDashboard() {
         {/* About Section */}
         {activeTab === "about" && (
           <div className="space-y-6">
-            <SectionTitle title="About Section" desc="Edit the About Me content" />
+            <SectionTitle title="About Section" desc="Edit your bio and manage your photo" />
+
+            {/* Photo Upload */}
+            <div className="group relative p-[1px] rounded-xl">
+              <div className="rounded-xl bg-white/[0.02] p-[1px]">
+                <div className="rounded-[calc(0.75rem-1px)] bg-[#050505] p-5 border border-white/[0.04]">
+                  <h3 className="text-sm font-medium text-white/60 mb-4">Profile Photo</h3>
+                  <div className="flex items-start gap-6">
+                    {/* Preview */}
+                    <div className="w-24 h-28 rounded-xl overflow-hidden bg-white/[0.03] flex-shrink-0 border border-white/[0.06]">
+                      {photoUrl ? (
+                        <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-white/15" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <label className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs text-white/50 hover:bg-white/[0.06] cursor-pointer transition-all">
+                        <Upload className="w-3.5 h-3.5" />
+                        {uploadingPhoto
+                          ? `Uploading... ${uploadProgress}%`
+                          : "Upload Photo"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                          disabled={uploadingPhoto}
+                        />
+                      </label>
+                      <p className="text-[10px] text-white/20 mt-2">
+                        Recommended: 400×500px, max 2MB. Stores in Firebase Storage.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <Field label="Heading 1" value={about.heading1 as string} onChange={(v) => updateField("about", "heading1", v)} />
             <Field label="Gradient Heading" value={about.gradientHeading as string} onChange={(v) => updateField("about", "gradientHeading", v)} />
             <Field label="Heading 2" value={about.heading2 as string} onChange={(v) => updateField("about", "heading2", v)} />
@@ -334,14 +438,10 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-white/60">Stats</h3>
                 <button
-                  onClick={() =>
-                    setContent((prev) => {
-                      if (!prev) return prev;
-                      const a = prev.about as Record<string, unknown>;
-                      const stats = [...((a.stats as Record<string, string>[]) || []), { value: "", label: "" }];
-                      return { ...prev, about: { ...a, stats } };
-                    })
-                  }
+                  onClick={() => {
+                    const newStats = [...(aboutStats || []), { value: "", label: "" }];
+                    updateField("about", "stats", newStats);
+                  }}
                   className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
                 >
                   <Plus className="w-3 h-3" /> Add Stat
@@ -349,32 +449,27 @@ export default function AdminDashboard() {
               </div>
               {aboutStats?.map((stat: Record<string, string>, i: number) => (
                 <div key={i} className="flex items-start gap-3 mb-3 group">
-                  <GripVertical className="w-4 h-4 text-white/10 mt-3 shrink-0" />
                   <div className="flex-1 grid grid-cols-2 gap-3">
-                    <div>
-                      <input
-                        value={stat.value}
-                        onChange={(e) => {
-                          const newStats = [...aboutStats];
-                          newStats[i] = { ...newStats[i], value: e.target.value };
-                          updateField("about", "stats", newStats);
-                        }}
-                        placeholder="Value (e.g. 5+)"
-                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white/70 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        value={stat.label}
-                        onChange={(e) => {
-                          const newStats = [...aboutStats];
-                          newStats[i] = { ...newStats[i], label: e.target.value };
-                          updateField("about", "stats", newStats);
-                        }}
-                        placeholder="Label (e.g. Projects)"
-                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white/70 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
-                      />
-                    </div>
+                    <input
+                      value={stat.value}
+                      onChange={(e) => {
+                        const newStats = [...aboutStats];
+                        newStats[i] = { ...newStats[i], value: e.target.value };
+                        updateField("about", "stats", newStats);
+                      }}
+                      placeholder="Value"
+                      className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white/70 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
+                    />
+                    <input
+                      value={stat.label}
+                      onChange={(e) => {
+                        const newStats = [...aboutStats];
+                        newStats[i] = { ...newStats[i], label: e.target.value };
+                        updateField("about", "stats", newStats);
+                      }}
+                      placeholder="Label"
+                      className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white/70 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
+                    />
                   </div>
                   <button
                     onClick={() => {
@@ -388,22 +483,13 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
-
-            {/* Photo upload hint */}
-            <div className="mt-6 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <h3 className="text-sm font-medium text-white/60 mb-2">About Photo</h3>
-              <p className="text-xs text-white/30">
-                Place your photo at <code className="text-purple-400/60">public/images/about.jpg</code> (recommended size: 400×500px, aspect ratio 4:5).
-                The placeholder gradient will be automatically replaced.
-              </p>
-            </div>
           </div>
         )}
 
         {/* Skills Section */}
         {activeTab === "skills" && (
           <div className="space-y-6">
-            <SectionTitle title="Skills" desc="Manage your skill categories and items" />
+            <SectionTitle title="Skills" desc="Manage skill categories" />
             {skills.map((skill: Record<string, unknown>, i: number) => (
               <div key={i} className="relative p-[1px] rounded-xl group">
                 <div className="rounded-xl bg-white/[0.02] p-[1px]">
@@ -412,7 +498,7 @@ export default function AdminDashboard() {
                       <input
                         value={skill.title as string}
                         onChange={(e) => updateArrayItem("skills", i, "title", e.target.value)}
-                        placeholder="Skill category name"
+                        placeholder="Category name"
                         className="bg-transparent text-sm font-medium text-white/70 outline-none border-b border-transparent focus:border-white/10 pb-1 transition-all w-full"
                       />
                       <button
@@ -422,47 +508,38 @@ export default function AdminDashboard() {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="space-y-2">
-                      {(skill.items as string[]).map((item: string, j: number) => (
-                        <div key={j} className="flex items-center gap-2">
-                          <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
-                          <input
-                            value={item}
-                            onChange={(e) =>
-                              updateNestedArrayItem("skills", i, "items", j, e.target.value)
-                            }
-                            placeholder="Skill item"
-                            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white/60 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
-                          />
-                          <button
-                            onClick={() => removeNestedArrayItem("skills", i, "items", j)}
-                            className="text-white/15 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                    {(skill.items as string[]).map((item: string, j: number) => (
+                      <div key={j} className="flex items-center gap-2 mb-2">
+                        <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
+                        <input
+                          value={item}
+                          onChange={(e) => updateNestedArrayItem("skills", i, "items", j, e.target.value)}
+                          placeholder="Skill"
+                          className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white/60 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
+                        />
+                        <button
+                          onClick={() => removeNestedArrayItem("skills", i, "items", j)}
+                          className="text-white/15 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
                     <button
                       onClick={() => addNestedArrayItem("skills", i, "items")}
-                      className="mt-3 flex items-center gap-1.5 text-[11px] text-white/30 hover:text-white/60 transition-colors"
+                      className="flex items-center gap-1.5 text-[11px] text-white/30 hover:text-white/60 transition-colors"
                     >
-                      <Plus className="w-3 h-3" /> Add item
+                      <Plus className="w-3 h-3" /> Add skill
                     </button>
                   </div>
                 </div>
               </div>
             ))}
             <button
-              onClick={() =>
-                addArrayItem("skills", {
-                  title: "New Category",
-                  items: ["New item"],
-                })
-              }
+              onClick={() => addArrayItem("skills", { title: "New Category", items: ["New skill"] })}
               className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-white/[0.08] text-white/30 text-sm hover:border-white/[0.15] hover:text-white/50 transition-all w-full justify-center"
             >
-              <Plus className="w-4 h-4" /> Add Skill Category
+              <Plus className="w-4 h-4" /> Add Category
             </button>
           </div>
         )}
@@ -470,7 +547,7 @@ export default function AdminDashboard() {
         {/* Projects Section */}
         {activeTab === "projects" && (
           <div className="space-y-6">
-            <SectionTitle title="Projects" desc="Manage your portfolio projects" />
+            <SectionTitle title="Projects" desc="Manage your projects" />
             {projects.map((project: Record<string, unknown>, i: number) => (
               <div key={i} className="relative p-[1px] rounded-xl group">
                 <div className="rounded-xl bg-white/[0.02] p-[1px]">
@@ -489,15 +566,13 @@ export default function AdminDashboard() {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-
                     <textarea
                       value={project.description as string}
                       onChange={(e) => updateArrayItem("projects", i, "description", e.target.value)}
-                      placeholder="Project description"
+                      placeholder="Description"
                       rows={2}
                       className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white/60 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all resize-none mb-3"
                     />
-
                     <div className="flex flex-wrap gap-2 mb-3">
                       {(project.tags as string[]).map((tag: string, j: number) => (
                         <div key={j} className="flex items-center gap-1">
@@ -521,7 +596,6 @@ export default function AdminDashboard() {
                         + tag
                       </button>
                     </div>
-
                     <div className="grid grid-cols-2 gap-3">
                       <input
                         value={project.href as string}
@@ -536,7 +610,6 @@ export default function AdminDashboard() {
                         className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white/50 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
                       />
                     </div>
-
                     <label className="flex items-center gap-2 mt-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -544,23 +617,14 @@ export default function AdminDashboard() {
                         onChange={(e) => updateArrayItem("projects", i, "featured", e.target.checked)}
                         className="w-3.5 h-3.5 rounded border-white/20 bg-transparent accent-purple-500"
                       />
-                      <span className="text-xs text-white/40">Featured project</span>
+                      <span className="text-xs text-white/40">Featured</span>
                     </label>
                   </div>
                 </div>
               </div>
             ))}
             <button
-              onClick={() =>
-                addArrayItem("projects", {
-                  title: "New Project",
-                  description: "Project description",
-                  tags: ["Tag"],
-                  href: "#",
-                  github: "#",
-                  featured: false,
-                })
-              }
+              onClick={() => addArrayItem("projects", { title: "New Project", description: "", tags: ["Tag"], href: "#", github: "#", featured: false })}
               className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-white/[0.08] text-white/30 text-sm hover:border-white/[0.15] hover:text-white/50 transition-all w-full justify-center"
             >
               <Plus className="w-4 h-4" /> Add Project
@@ -571,7 +635,7 @@ export default function AdminDashboard() {
         {/* Experience Section */}
         {activeTab === "experience" && (
           <div className="space-y-6">
-            <SectionTitle title="Experience" desc="Manage your work history" />
+            <SectionTitle title="Experience" desc="Manage work history" />
             {experience.map((exp: Record<string, unknown>, i: number) => (
               <div key={i} className="relative p-[1px] rounded-xl group">
                 <div className="rounded-xl bg-white/[0.02] p-[1px]">
@@ -587,13 +651,13 @@ export default function AdminDashboard() {
                         <input
                           value={exp.company as string}
                           onChange={(e) => updateArrayItem("experience", i, "company", e.target.value)}
-                          placeholder="Company name"
+                          placeholder="Company"
                           className="bg-transparent text-xs text-white/40 outline-none border-b border-transparent focus:border-white/10 pb-1 transition-all w-full"
                         />
                         <input
                           value={exp.period as string}
                           onChange={(e) => updateArrayItem("experience", i, "period", e.target.value)}
-                          placeholder="Period (e.g. 2023 — Present)"
+                          placeholder="Period"
                           className="bg-transparent text-xs text-white/30 outline-none border-b border-transparent focus:border-white/10 pb-1 transition-all w-full"
                         />
                       </div>
@@ -604,39 +668,33 @@ export default function AdminDashboard() {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-
                     <textarea
                       value={exp.description as string}
                       onChange={(e) => updateArrayItem("experience", i, "description", e.target.value)}
-                      placeholder="Job description"
+                      placeholder="Description"
                       rows={2}
                       className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white/60 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all resize-none mb-3"
                     />
-
-                    <div className="space-y-1.5">
-                      {(exp.highlights as string[]).map((hl: string, j: number) => (
-                        <div key={j} className="flex items-center gap-2">
-                          <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
-                          <input
-                            value={hl}
-                            onChange={(e) =>
-                              updateNestedArrayItem("experience", i, "highlights", j, e.target.value)
-                            }
-                            placeholder="Highlight"
-                            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white/50 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
-                          />
-                          <button
-                            onClick={() => removeNestedArrayItem("experience", i, "highlights", j)}
-                            className="text-white/15 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                    {(exp.highlights as string[]).map((hl: string, j: number) => (
+                      <div key={j} className="flex items-center gap-2 mb-1.5">
+                        <span className="w-1 h-1 rounded-full bg-white/20 shrink-0" />
+                        <input
+                          value={hl}
+                          onChange={(e) => updateNestedArrayItem("experience", i, "highlights", j, e.target.value)}
+                          placeholder="Highlight"
+                          className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white/50 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
+                        />
+                        <button
+                          onClick={() => removeNestedArrayItem("experience", i, "highlights", j)}
+                          className="text-white/15 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
                     <button
                       onClick={() => addNestedArrayItem("experience", i, "highlights")}
-                      className="mt-3 flex items-center gap-1.5 text-[11px] text-white/30 hover:text-white/60 transition-colors"
+                      className="flex items-center gap-1.5 text-[11px] text-white/30 hover:text-white/60 transition-colors"
                     >
                       <Plus className="w-3 h-3" /> Add highlight
                     </button>
@@ -645,15 +703,7 @@ export default function AdminDashboard() {
               </div>
             ))}
             <button
-              onClick={() =>
-                addArrayItem("experience", {
-                  company: "New Company",
-                  role: "Job Title",
-                  period: "2024 — Present",
-                  description: "Job description",
-                  highlights: ["Highlight"],
-                })
-              }
+              onClick={() => addArrayItem("experience", { company: "New Company", role: "Job Title", period: "2024 — Present", description: "", highlights: ["Highlight"] })}
               className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-white/[0.08] text-white/30 text-sm hover:border-white/[0.15] hover:text-white/50 transition-all w-full justify-center"
             >
               <Plus className="w-4 h-4" /> Add Experience
@@ -667,7 +717,7 @@ export default function AdminDashboard() {
             <SectionTitle title="Contact" desc="Edit contact information" />
             <Field label="Email" value={contact.email} onChange={(v) => updateField("contact", "email", v)} />
             <Field label="Location" value={contact.location} onChange={(v) => updateField("contact", "location", v)} />
-            <Field label="Form Intro Text" value={contact.formIntro} onChange={(v) => updateField("contact", "formIntro", v)} textarea />
+            <Field label="Form Intro" value={contact.formIntro} onChange={(v) => updateField("contact", "formIntro", v)} textarea />
             <Field label="Success Message" value={contact.successMessage} onChange={(v) => updateField("contact", "successMessage", v)} />
           </div>
         )}
@@ -675,7 +725,7 @@ export default function AdminDashboard() {
         {/* Social Section */}
         {activeTab === "social" && (
           <div className="space-y-6">
-            <SectionTitle title="Social Links" desc="Manage your social media URLs" />
+            <SectionTitle title="Social Links" desc="Manage social media URLs" />
             <Field label="GitHub URL" value={social.github} onChange={(v) => updateField("social", "github", v)} />
             <Field label="LinkedIn URL" value={social.linkedin} onChange={(v) => updateField("social", "linkedin", v)} />
             <Field label="Twitter URL" value={social.twitter} onChange={(v) => updateField("social", "twitter", v)} />
