@@ -1,0 +1,116 @@
+{
+  "hero": {
+    "greeting": "Crafting",
+    "gradientText": "Digital",
+    "ending": "Experiences",
+    "subtitle": "Full-stack developer with an obsessive eye for detail — building premium digital products that feel as good as they look.",
+    "ctaPrimary": "View Projects",
+    "ctaSecondary": "Get in Touch"
+  },
+  "about": {
+    "heading1": "Turning complex",
+    "gradientHeading": "problems",
+    "heading2": "into elegant code",
+    "paragraph1": "I'm a full-stack developer and design engineer with a passion for building digital products that are both beautiful and functional. With years of experience across the entire stack, I specialize in creating seamless user experiences that delight users at every touchpoint.",
+    "paragraph2": "My approach combines meticulous attention to detail with a deep understanding of modern web technologies. Every pixel, every interaction, and every line of code is crafted with intention.",
+    "stats": [
+      { "value": "5+", "label": "Years Experience" },
+      { "value": "50+", "label": "Projects Delivered" },
+      { "value": "30+", "label": "Happy Clients" }
+    ]
+  },
+  "skills": [
+    {
+      "title": "Frontend",
+      "items": ["React/Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"]
+    },
+    {
+      "title": "Backend",
+      "items": ["Node.js", "Python", "GraphQL", "REST APIs"]
+    },
+    {
+      "title": "Database",
+      "items": ["PostgreSQL", "MongoDB", "Redis", "Prisma"]
+    },
+    {
+      "title": "DevOps",
+      "items": ["Docker", "AWS", "Vercel", "CI/CD"]
+    },
+    {
+      "title": "Design",
+      "items": ["Figma", "UI/UX", "Prototyping", "Design Systems"]
+    },
+    {
+      "title": "Languages",
+      "items": ["JavaScript", "TypeScript", "Python", "Rust"]
+    }
+  ],
+  "projects": [
+    {
+      "title": "Nova Dashboard",
+      "description": "A real-time analytics dashboard with AI-powered insights, serving millions of data points with sub-millisecond query times.",
+      "tags": ["Next.js", "Python", "WebSockets", "PostgreSQL"],
+      "href": "#",
+      "github": "#",
+      "featured": true
+    },
+    {
+      "title": "Flux Commerce",
+      "description": "Headless e-commerce platform with composable architecture, built for scale with dynamic pricing and inventory management.",
+      "tags": ["React", "Node.js", "GraphQL", "Redis"],
+      "href": "#",
+      "github": "#",
+      "featured": true
+    },
+    {
+      "title": "Pulse Health",
+      "description": "Telemedicine platform connecting patients with healthcare providers through secure video consultations and health tracking.",
+      "tags": ["Next.js", "WebRTC", "MongoDB", "AWS"],
+      "href": "#",
+      "github": "#",
+      "featured": false
+    },
+    {
+      "title": "Synth AI Studio",
+      "description": "Creative AI toolkit for generating music, art, and design assets using state-of-the-art machine learning models.",
+      "tags": ["Python", "FastAPI", "React", "TensorFlow"],
+      "href": "#",
+      "github": "#",
+      "featured": false
+    }
+  ],
+  "experience": [
+    {
+      "company": "TechCorp Inc.",
+      "role": "Senior Full-Stack Developer",
+      "period": "2023 — Present",
+      "description": "Architected and built scalable microservices handling 10M+ daily requests. Led a team of 5 developers, reducing deployment time by 60% through CI/CD optimization.",
+      "highlights": ["Scaled system to handle 10M+ daily requests", "Reduced deployment time by 60%", "Led team of 5 developers"]
+    },
+    {
+      "company": "Digital Agency Co.",
+      "role": "Full-Stack Developer",
+      "period": "2021 — 2023",
+      "description": "Delivered 20+ client projects across fintech, healthcare, and e-commerce. Built reusable component libraries that accelerated project delivery by 40%.",
+      "highlights": ["Delivered 20+ client projects", "Built reusable component library", "Accelerated delivery by 40%"]
+    },
+    {
+      "company": "StartupXYZ",
+      "role": "Frontend Developer",
+      "period": "2019 — 2021",
+      "description": "Built the core product from the ground up using React and TypeScript. Implemented real-time collaboration features and a comprehensive design system.",
+      "highlights": ["Built product from ground up", "Implemented real-time collaboration", "Created comprehensive design system"]
+    }
+  ],
+  "contact": {
+    "email": "hello@sivanandh.dev",
+    "location": "Remote / Bangalore, India",
+    "formIntro": "Have a project in mind or just want to chat? Drop me a message and I'll get back to you within 24 hours.",
+    "successMessage": "I'll get back to you within 24 hours."
+  },
+  "social": {
+    "github": "#",
+    "linkedin": "#",
+    "twitter": "#"
+  }
+}
