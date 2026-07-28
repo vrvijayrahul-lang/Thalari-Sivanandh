@@ -438,6 +438,43 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Image URL */}
+            <div className="group relative p-[1px] rounded-xl">
+              <div className="rounded-xl bg-white/[0.02] p-[1px]">
+                <div className="rounded-[calc(0.75rem-1px)] bg-[#050505] p-4 border border-white/[0.04]">
+                  <label className="block text-xs text-white/40 mb-2 tracking-wide uppercase">
+                    Or use an Image URL
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      value={photoUrl || ""}
+                      onChange={(e) => {
+                        const url = e.target.value;
+                        setPhotoUrl(url);
+                        setContent((prev) => prev ? { ...prev, photoUrl: url } : prev);
+                      }}
+                      placeholder="https://example.com/photo.jpg"
+                      className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white/70 placeholder:text-white/15 outline-none focus:border-white/[0.12] transition-all"
+                    />
+                    {photoUrl && (
+                      <button
+                        onClick={() => {
+                          setPhotoUrl(null);
+                          setContent((prev) => prev ? { ...prev, photoUrl: "" } : prev);
+                        }}
+                        className="px-3 py-2 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-white/20 mt-2">
+                    Paste any public image URL (JPG, PNG, WebP). Overrides uploaded photo.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <Field label="Heading 1" value={about.heading1 as string} onChange={(v) => updateField("about", "heading1", v)} />
             <Field label="Gradient Heading" value={about.gradientHeading as string} onChange={(v) => updateField("about", "gradientHeading", v)} />
             <Field label="Heading 2" value={about.heading2 as string} onChange={(v) => updateField("about", "heading2", v)} />

@@ -19,16 +19,16 @@ export default function Home() {
     getContent().then((data) => {
       if (data) {
         setContent(data);
-        // If photoUrl is stored in Firestore, use it
+        // Use photoUrl from Firestore (set via CMS image URL field)
         if (data.photoUrl) {
           setPhotoUrl(data.photoUrl as string);
+          return; // URL from CMS takes priority
         }
       }
-    });
-
-    // Also check Firebase Storage directly for photo
-    getImageUrl("portfolio/about.jpg").then((url) => {
-      if (url) setPhotoUrl(url);
+      // Fallback: check Firebase Storage for uploaded photo
+      getImageUrl("portfolio/about.jpg").then((url) => {
+        if (url) setPhotoUrl(url);
+      });
     });
   }, []);
 
