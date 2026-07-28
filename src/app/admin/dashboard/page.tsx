@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("hero");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -124,10 +125,13 @@ export default function AdminDashboard() {
   const handleSave = async () => {
     if (!content) return;
     setSaving(true);
+    setSaveError(null);
     const result = await saveContent(content);
     if (result.success) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } else {
+      setSaveError(result.error || "Unknown error occurred");
     }
     setSaving(false);
   };
@@ -294,6 +298,12 @@ export default function AdminDashboard() {
             {saved && (
               <span className="text-[11px] text-emerald-400/80 animate-pulse">
                 Saved ✓
+              </span>
+            )}
+
+            {saveError && (
+              <span className="text-[11px] text-red-400/80 max-w-[200px] truncate">
+                ⚠ Error
               </span>
             )}
 
@@ -729,6 +739,16 @@ export default function AdminDashboard() {
             <Field label="GitHub URL" value={social.github} onChange={(v) => updateField("social", "github", v)} />
             <Field label="LinkedIn URL" value={social.linkedin} onChange={(v) => updateField("social", "linkedin", v)} />
             <Field label="Twitter URL" value={social.twitter} onChange={(v) => updateField("social", "twitter", v)} />
+          </div>
+        )}
+
+        {/* Save error detail */}
+        {saveError && (
+          <div className="mt-8 p-5 rounded-xl bg-red-500/5 border border-red-500/15">
+            <h3 className="text-sm font-medium text-red-400 mb-2">❌ Failed to Save</h3>
+            <pre className="text-xs text-red-300/70 whitespace-pre-wrap font-sans leading-relaxed">
+              {saveError}
+            </pre>
           </div>
         )}
       </div>
